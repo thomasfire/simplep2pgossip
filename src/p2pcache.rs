@@ -7,13 +7,6 @@ use std::sync::{Arc, RwLock};
 
 const MS_IN_SEC: u32 = 1000;
 
-#[cfg(feature = "mock_time")]
-static mut CURRENT_TIME: i64 = 0;
-#[cfg(feature = "mock_time")]
-pub fn set_current_time(time: i64) {
-    unsafe {CURRENT_TIME = time;}
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PeerState {
     pub path: String,
@@ -40,26 +33,38 @@ struct PeerMap {
 #[derive(Debug, Clone)]
 pub struct PeerCache {
     peers: Arc<RwLock<PeerMap>>,
-    timeout: u32
+    timeout: u32,
+    #[cfg(feature = "mock_time")]
+    pub current_time: i64
 }
 
 
 impl PeerCache {
+    #[cfg(not(feature = "mock_time"))]
     pub fn new(timeout: u32) -> Self {
         PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })), timeout: timeout*MS_IN_SEC }
     }
+    #[cfg(feature = "mock_time")]
+    pub fn new(timeout: u32) -> Self {
+        PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })), timeout: timeout*MS_IN_SEC, current_time: 0 }
+    }
 
     #[cfg(not(feature = "mock_time"))]
-    fn timestamp_now() -> i64 {
+    fn timestamp_now(&self) -> i64 {
         Utc::now().timestamp_millis()
     }
     #[cfg(feature = "mock_time")]
-    fn timestamp_now() -> i64 {
-        unsafe {CURRENT_TIME}
+    fn timestamp_now(&self) -> i64 {
+        self.current_time
+    }
+
+    #[cfg(feature = "mock_time")]
+    pub fn set_current_time(&mut self, time: i64) {
+        self.current_time = time;
     }
 
     pub fn cleanup_old_peers(&mut self) -> Result<(), String> {
-        let current_utc = Self::timestamp_now();
+        let current_utc = self.timestamp_now();
         self.peers.write().map(|mut cache| {
             for peer in &cache.peers.values().map(|val| val.clone()).collect::<Vec<PeerState>>() {
                 if !peer.available && current_utc - peer.timestamp > self.timeout as i64 {
@@ -84,7 +89,7 @@ impl PeerCache {
                 }
             };
             if changed || available {
-                cache.peers.insert(path.to_string(), PeerState { path: path.to_string(), available, timestamp: Self::timestamp_now() });
+                cache.peers.insert(path.to_string(), PeerState { path: path.to_string(), available, timestamp: self.timestamp_now() });
             }
         }).map_err(|err| { error!("Poison error: {:?}", err); format!("Poison error: {:?}", err) })?;
         Ok(changed)
