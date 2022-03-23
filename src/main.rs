@@ -1,5 +1,8 @@
-use clap::Parser;
+extern crate simplep2pgossip;
+use simplep2pgossip::server::run_server;
+use simplep2pgossip::p2pcache::PeerCache;
 
+use clap::Parser;
 use env_logger::Env;
 
 #[derive(Parser, Debug)]
@@ -29,8 +32,10 @@ struct Args {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args: Args = Args::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
+    let cache = PeerCache::new(args.timeout);
 
+    run_server(&args.bind, args.port, &args.cert, &args.key, &cache);
 }
