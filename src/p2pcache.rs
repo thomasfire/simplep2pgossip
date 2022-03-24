@@ -1,3 +1,5 @@
+use crate::waiter::Waiter;
+
 use serde::{Deserialize, Serialize};
 use log::{error, trace};
 use chrono::prelude::*;
@@ -34,6 +36,7 @@ struct PeerMap {
 pub struct PeerCache {
     peers: Arc<RwLock<PeerMap>>,
     timeout: u32,
+    pub signaler: Waiter,
     #[cfg(feature = "mock_time")]
     pub current_time: i64
 }
@@ -42,11 +45,15 @@ pub struct PeerCache {
 impl PeerCache {
     #[cfg(not(feature = "mock_time"))]
     pub fn new(timeout: u32) -> Self {
-        PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })), timeout: timeout*MS_IN_SEC }
+        PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })), timeout: timeout*MS_IN_SEC, signaler: Waiter::new(), }
     }
     #[cfg(feature = "mock_time")]
     pub fn new(timeout: u32) -> Self {
-        PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })), timeout: timeout*MS_IN_SEC, current_time: 0 }
+        PeerCache { peers: Arc::new(RwLock::new(PeerMap { peers: BTreeMap::new() })),
+            timeout: timeout*MS_IN_SEC,
+            signaler: Waiter::new(),
+            current_time: 0,
+        }
     }
 
     #[cfg(not(feature = "mock_time"))]
