@@ -8,7 +8,7 @@ authors = ["火焚 富良"]
 tokio = { version = "1", features = ["full"] }
 warp = { version = "0.3", features = ["tls"] }
 clap = { version = "3.1.6", features = ["derive"] }
-reqwest = { version = "0.11.10", features = ["rustls-tls", "blocking"] }
+reqwest = { version = "0.11.10", features = ["native-tls", "blocking", "json"] }
 env_logger = "0.9.*"
 serde_json = "1.0.79"
 serde = "1.0.136"
@@ -16,6 +16,8 @@ serde_derive = "1.0.*"
 log = "0.4.*"
 chrono = "0.4"
 rand = "0.8.5"
+native-tls = "0.2.8"
+futures = "0.3.21"
 
 [features]
 mock_time = []

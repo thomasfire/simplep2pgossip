@@ -2,8 +2,9 @@ extern crate simplep2pgossip;
 use simplep2pgossip::server::run_server;
 use simplep2pgossip::p2pcache::PeerCache;
 
-use clap::Parser;
+use clap::{arg, Parser};
 use env_logger::Env;
+use simplep2pgossip::saabisu::run_saabisu;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -35,7 +36,9 @@ fn main() {
     let args: Args = Args::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let cache = PeerCache::new(args.timeout);
-
+    let mut cache = PeerCache::new(args.timeout);
+    let self_name = format!("{}:{}", &args.bind, args.port);
+    cache.update_peer(&self_name, true);
+    run_saabisu(&self_name, &args.connect, args.period, args.timeout, &cache);
     run_server(&args.bind, args.port, &args.cert, &args.key, &cache);
 }

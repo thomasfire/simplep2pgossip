@@ -6,7 +6,7 @@ use serde_json::{from_str as js_from_str, to_string as js_to_string};
 use log::{error, info, warn};
 
 use std::net::SocketAddr;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[tokio::main]
 pub async fn run_server(bind: &str, port: u16, cert: &str, key: &str, cache: &PeerCache) {
@@ -14,7 +14,7 @@ pub async fn run_server(bind: &str, port: u16, cert: &str, key: &str, cache: &Pe
     let mut cache_clone_mut = cache.clone();
     let peers_srv = warp::path("peers")
         .and(warp::get())
-        .and(warp::path::param::<String>())
+        .and(warp::path::param())
         .map(move |peer_name: String|  {
             let mut mut_cache = cache_clone.clone();
             mut_cache.update_peer(&peer_name, true).map_or_else(|err| {
@@ -34,32 +34,25 @@ pub async fn run_server(bind: &str, port: u16, cert: &str, key: &str, cache: &Pe
             }).map(|val| {mut_cache.signaler.broadcast(); val})
         });
 
-    let update_peers_srv = warp::path("update")
-        .and(warp::post())
-        .and(warp::path::param::<String>())
-        .map(move |new_data: String| {
-            let parsed = match js_from_str::<PeerList>(&new_data) {
-                Ok(val) => val,
-                Err(err) => {
-                    error!("Error on parsing the PeerList: {:?}", err);
-                    return Response::builder().status(StatusCode::BAD_REQUEST).body("".to_string());
-                }
-            };
-            let updated = match cache_clone_mut.clone().update_from_list(&parsed) {
+    let update_peers_srv = warp::get()
+        .and(warp::path("update"))
+        .and(warp::body::json::<PeerList>())
+        .map(move |new_data: PeerList| {
+            let updated = match cache_clone_mut.clone().update_from_list(&new_data) {
                 Ok(val) => val,
                 Err(err) => {
                     error!("Error on updating the PeerList: {}", err);
                     return Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body("".to_string());
                 }
             };
-            cache_clone_mut.signaler.broadcast();
+            if (updated) { cache_clone_mut.signaler.broadcast(); }
             Response::builder().status(StatusCode::OK).body("".to_string())
         });
 
-    let message_srv = warp::path("message")
-        .and(warp::post())
-        .and(warp::body::form())
-        .map(move |simple_map: BTreeMap<String, String>| {
+    let message_srv = warp::get()
+        .and(warp::path("message"))
+        .and(warp::query::<HashMap<String, String>>())
+        .map(move |simple_map: HashMap<String, String>| {
             let peer_name = match simple_map.get("peer_name") {
                 Some(val) => val,
                 None => {
@@ -78,10 +71,16 @@ pub async fn run_server(bind: &str, port: u16, cert: &str, key: &str, cache: &Pe
             StatusCode::OK
         });
 
+    let any_srv = warp::any().map(|| {
+        warn!("Default path");
+        StatusCode::BAD_REQUEST
+    });
+
     let routes = warp::get().and(
         peers_srv
             .or(update_peers_srv)
-            .or(message_srv),
+            .or(message_srv)
+            .or(any_srv),
     );
 
     warp::serve(routes)
