@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod test {
-    use std::ops::Deref;
     use simplep2pgossip::waiter::Waiter;
     use std::thread;
     use std::sync::{Arc, Mutex};

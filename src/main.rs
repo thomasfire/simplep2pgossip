@@ -2,7 +2,7 @@ extern crate simplep2pgossip;
 use simplep2pgossip::server::run_server;
 use simplep2pgossip::p2pcache::PeerCache;
 
-use clap::{arg, Parser};
+use clap::{Parser};
 use env_logger::Env;
 use simplep2pgossip::saabisu::run_saabisu;
 
@@ -38,7 +38,7 @@ fn main() {
 
     let mut cache = PeerCache::new(args.timeout);
     let self_name = format!("{}:{}", &args.bind, args.port);
-    cache.update_peer(&self_name, true);
+    cache.update_peer(&self_name, true).unwrap();
     run_saabisu(&self_name, &args.connect, args.period, args.timeout, &cache);
     run_server(&args.bind, args.port, &args.cert, &args.key, &cache);
 }
