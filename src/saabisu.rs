@@ -83,6 +83,7 @@ fn updater(name: &str, cache: &mut PeerCache) -> Result<(), String> {
         .filter(|x| x.address != name)
         .map(|x| x.address.clone())
         .collect();
+    trace!("PeerList: {:?}", &cache.get_list().unwrap_or(PeerList{peers: vec![]}));
     for peer in all_peers {
         let cache_copy = cache.clone();
         let peer_copy = peer.clone();

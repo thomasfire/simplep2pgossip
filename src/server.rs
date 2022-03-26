@@ -2,7 +2,7 @@ use crate::p2pcache::{PeerCache, PeerList};
 
 use warp::{http::{StatusCode, Response}, Filter};
 use serde_json::to_string as js_to_string;
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 
 use std::net::SocketAddr;
 use std::collections::HashMap;
@@ -27,6 +27,7 @@ pub async fn run_server(bind: &str, port: u16, cert: &str, key: &str, cache: &Pe
                     error!("Error on getting the PeerList: {}", err);
                     Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body("".to_string())
                 },|peers_l: PeerList| {
+                    trace!("PeerList reply: {:?}", peers_l);
                     js_to_string(&peers_l).map_or_else(|err| {
                         error!("Error on jsoning the PeerList: {:?}", err);
                         Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body("".to_string())

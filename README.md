@@ -17,6 +17,11 @@ But you can simply run:
 ```shell
 $ ./test.sh
 ```
+Also, you can run basic autotest, which runs 3 nodes and checks output for correctness and consistency.
+You'll need to have `python3` been installed. After building, run from repo root:
+```shell
+$ ./autotests.py target/[debug, release]/simplep2pgossip 
+```
 
 ## Starting peer
 Before starting a peer, you'll need to generate SSL certificate, for example:
@@ -41,3 +46,5 @@ when tracker is becoming unavailable.
 ## To improve
  * Proper trust model
  * Optimize lists replay
+ * Get rid of sending self name
+ * Make connections persistent
